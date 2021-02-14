@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
+using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging
 {
@@ -1051,7 +1052,10 @@ namespace Microsoft.Build.Logging
 
         private int ReadInt32()
         {
-            return binaryReader.Read7BitEncodedInt();
+            // on some platforms (net5) this method was added to BinaryReader
+            // but it's not available on others. Call our own extension method
+            // explicitly to avoid ambiguity.
+            return BinaryReaderExtensions.Read7BitEncodedInt(binaryReader);
         }
 
         private long ReadInt64()
