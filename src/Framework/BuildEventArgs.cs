@@ -180,9 +180,44 @@ namespace Microsoft.Build.Framework
             message = reader.ReadOptionalString();
             helpKeyword = reader.ReadOptionalString();
             senderName = reader.ReadOptionalString();
-            timestamp = reader.ReadTimestamp();
+
+            long timestampTicks = reader.ReadInt64();
+
+            if (version > 20)
+            {
+                DateTimeKind kind = (DateTimeKind)reader.ReadInt32();
+                timestamp = new DateTime(timestampTicks, kind);
+            }
+            else
+            {
+                timestamp = new DateTime(timestampTicks);
+            }
+
             threadId = reader.ReadInt32();
-            buildEventContext = reader.ReadOptionalBuildEventContext();
+
+            if (reader.ReadByte() == 0)
+            {
+                buildEventContext = null;
+            }
+            else
+            {
+                int nodeId = reader.ReadInt32();
+                int projectContextId = reader.ReadInt32();
+                int targetId = reader.ReadInt32();
+                int taskId = reader.ReadInt32();
+
+                if (version > 20)
+                {
+                    int submissionId = reader.ReadInt32();
+                    int projectInstanceId = reader.ReadInt32();
+                    int evaluationId = reader.ReadInt32();
+                    buildEventContext = new BuildEventContext(submissionId, nodeId, evaluationId, projectInstanceId, projectContextId, targetId, taskId);
+                }
+                else
+                {
+                    buildEventContext = new BuildEventContext(nodeId, targetId, projectContextId, taskId);
+                }
+            }
         }
 #endregion
 
