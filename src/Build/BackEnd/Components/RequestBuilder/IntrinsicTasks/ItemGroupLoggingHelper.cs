@@ -33,6 +33,16 @@ namespace Microsoft.Build.BackEnd
         internal static string TaskParameterPrefix = ResourceUtilities.GetResourceString("TaskParameterPrefix");
 
         /// <summary>
+        /// <see cref="TaskParameterEventArgs"/> by itself doesn't have the implementation
+        /// to materialize the Message as that's a declaration assembly. We inject the logic
+        /// here.
+        /// </summary>
+        static ItemGroupLoggingHelper()
+        {
+            TaskParameterEventArgs.MessageGetter = GetTaskParameterText;
+        }
+
+        /// <summary>
         /// Gets a text serialized value of a parameter for logging.
         /// </summary>
         internal static string GetParameterText(string prefix, string parameterName, IList parameterValue, bool logItemMetadata = true)
@@ -229,8 +239,7 @@ namespace Microsoft.Build.BackEnd
                 itemName,
                 items,
                 logItemMetadata,
-                timestamp,
-                a => GetTaskParameterText(a.Kind, a.ItemName, a.Items, logItemMetadata));
+                timestamp);
             args.BuildEventContext = buildEventContext;
             return args;
         }

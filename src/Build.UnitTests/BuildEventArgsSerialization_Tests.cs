@@ -318,11 +318,17 @@ namespace Microsoft.Build.UnitTests
         [Fact]
         public void RoundtripTaskParameterEventArgs()
         {
-            var args = new TaskParameterEventArgs(TaskParameterMessageKind.TaskOutput, "ItemName", null, true, DateTime.MinValue, ItemGroupLoggingHelper.GetTaskParameterText);
+            var items = new TaskItemData[]
+            {
+                new TaskItemData("ItemSpec1", null),
+                new TaskItemData("ItemSpec2", Enumerable.Range(1,3).ToDictionary(i => i.ToString(), i => i.ToString() + "value"))
+            };
+            var args = new TaskParameterEventArgs(TaskParameterMessageKind.TaskOutput, "ItemName", items, true, DateTime.MinValue);
 
             Roundtrip(args,
                 e => e.Kind.ToString(),
                 e => e.ItemName,
+                e => e.LogItemMetadata.ToString(),
                 e => GetItemsString(e.Items));
         }
 

@@ -26,14 +26,6 @@ namespace Microsoft.Build.Framework
     public class TaskParameterEventArgs : BuildMessageEventArgs
     {
         /// <summary>
-        /// Default (family) constructor.
-        /// </summary>
-        protected TaskParameterEventArgs()
-            : base()
-        {
-        }
-
-        /// <summary>
         /// Creates an instance of this class for the given task parameter.
         /// </summary>
         public TaskParameterEventArgs
@@ -42,8 +34,7 @@ namespace Microsoft.Build.Framework
             string itemName,
             IList items,
             bool logItemMetadata,
-            DateTime eventTimestamp,
-            Func<TaskParameterEventArgs, string> messageGetter
+            DateTime eventTimestamp
         )
             : base(null, null, null, MessageImportance.Low, eventTimestamp)
         {
@@ -51,7 +42,6 @@ namespace Microsoft.Build.Framework
             ItemName = itemName;
             Items = items;
             LogItemMetadata = logItemMetadata;
-            this._messageGetter = messageGetter;
         }
 
         public TaskParameterMessageKind Kind { get; private set; }
@@ -59,7 +49,13 @@ namespace Microsoft.Build.Framework
         public IList Items { get; private set; }
         public bool LogItemMetadata { get; private set; }
 
-        private readonly Func<TaskParameterEventArgs, string> _messageGetter;
+        /// <summary>
+        /// The <see cref="TaskParameterEventArgs"/> type is declared in Microsoft.Build.Framework
+        /// which is a declarations assembly. The logic to realize the Message is in Microsoft.Build
+        /// which is an implementations assembly. This seems like the easiest way to inject the
+        /// implementation for realizing the Message.
+        /// </summary>
+        internal static Func<TaskParameterEventArgs, string> MessageGetter = args => null;
 
         internal override void CreateFromStream(BinaryReader reader, int version)
         {
@@ -203,7 +199,7 @@ namespace Microsoft.Build.Framework
                 {
                     if (base.Message == null)
                     {
-                        base.Message = _messageGetter(this);
+                        base.Message = MessageGetter(this);
                     }
 
                     return base.Message;

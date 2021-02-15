@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Shared;
@@ -71,7 +72,28 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
         private static TaskParameterEventArgs CreateTaskParameter()
         {
-            return new TaskParameterEventArgs(TaskParameterMessageKind.TaskInput, "ItemName", null, true, DateTime.MinValue, s => "");
+            var items = new TaskItemData[]
+            {
+                new TaskItemData("ItemSpec1", null),
+                new TaskItemData("ItemSpec2", Enumerable.Range(1,3).ToDictionary(i => i.ToString(), i => i.ToString() + "value"))
+            };
+            var result = new TaskParameterEventArgs(
+                TaskParameterMessageKind.TaskInput,
+                "ItemName",
+                items,
+                logItemMetadata: true,
+                DateTime.MinValue);
+
+            // normalize line endings as we can't rely on the line endings of NodePackets_Tests.cs
+            Assert.Equal(@"Task Parameter:
+    ItemName=
+        ItemSpec1
+        ItemSpec2
+                1=1value
+                2=2value
+                3=3value".Replace("\r\n", "\n"), result.Message);
+
+            return result;
         }
 
         /// <summary>
@@ -80,6 +102,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
         [Fact]
         public void TestTranslation()
         {
+            // need to touch the type so that the static constructor runs
+            _ = ItemGroupLoggingHelper.OutputItemParameterMessagePrefix;
+
             TaskItem item = new TaskItem("Hello", "my.proj");
             List<TaskItem> targetOutputs = new List<TaskItem>();
             targetOutputs.Add(item);
@@ -297,6 +322,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
                     Assert.Equal(leftTaskParameter.Kind, rightTaskParameter.Kind);
                     Assert.Equal(leftTaskParameter.ItemName, rightTaskParameter.ItemName);
                     Assert.Equal(leftTaskParameter.Items.Count, rightTaskParameter.Items.Count);
+                    Assert.Equal(leftTaskParameter.Message, rightTaskParameter.Message);
+                    Assert.Equal(leftTaskParameter.BuildEventContext, rightTaskParameter.BuildEventContext);
+                    Assert.Equal(leftTaskParameter.Timestamp, rightTaskParameter.Timestamp);
                     break;
 
                 case LoggingEventType.TaskFinishedEvent:

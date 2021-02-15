@@ -492,7 +492,7 @@ namespace Microsoft.Build.Shared
                     return new TaskCommandLineEventArgs(null, null, MessageImportance.Normal);
 #if !TASKHOST // MSBuildTaskHost is targeting Microsoft.Build.Framework.dll 3.5
                 case LoggingEventType.TaskParameterEvent:
-                    return new TaskParameterEventArgs(0, null, null, true, default, null);
+                    return new TaskParameterEventArgs(0, null, null, true, default);
 #endif
                 default:
                     ErrorUtilities.VerifyThrow(false, "Should not get to the default of GetBuildEventArgFromId ID: " + _eventType);

@@ -738,7 +738,7 @@ namespace Microsoft.Build.UnitTests.Logging
             /// <summary>
             /// Task Parameter Event
             /// </summary>
-            private static TaskParameterEventArgs s_taskParameter = new TaskParameterEventArgs(TaskParameterMessageKind.TaskInput, "ItemName", null, true, DateTime.MinValue, s => "");
+            private static TaskParameterEventArgs s_taskParameter = new TaskParameterEventArgs(TaskParameterMessageKind.TaskInput, "ItemName", null, true, DateTime.MinValue);
 
             /// <summary>
             /// Build Warning Event
