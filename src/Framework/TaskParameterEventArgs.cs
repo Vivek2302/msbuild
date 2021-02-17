@@ -57,6 +57,8 @@ namespace Microsoft.Build.Framework
         /// </summary>
         internal static Func<TaskParameterEventArgs, string> MessageGetter = args => null;
 
+        internal static Func<int, IDictionary<string, string>> DictionaryFactory = capacity => new Dictionary<string, string>(capacity);
+
         internal override void CreateFromStream(BinaryReader reader, int version)
         {
             RawTimestamp = reader.ReadTimestamp();
@@ -89,7 +91,7 @@ namespace Microsoft.Build.Framework
                 return new TaskItemData(itemSpec, metadata: null);
             }
 
-            var metadata = new Dictionary<string, string>();
+            var metadata = DictionaryFactory(metadataCount);
             for (int i = 0; i < metadataCount; i++)
             {
                 string key = reader.ReadString();

@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using Microsoft.Build.BackEnd;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
 using Microsoft.Build.Shared;
@@ -31,6 +32,8 @@ namespace Microsoft.Build.Logging
         /// <summary>
         /// A list of dictionaries we've encountered so far. Dictionaries are referred to by their order in this list.
         /// </summary>
+        /// <remarks>This is designed to not hold on to strings. We just store the string indices and
+        /// hydrate the dictionary on demand before returning.</remarks>
         private readonly List<(int keyIndex, int valueIndex)[]> nameValueListRecords = new List<(int, int)[]>();
 
         /// <summary>
@@ -220,7 +223,10 @@ namespace Microsoft.Build.Logging
             {
                 var list = nameValueListRecords[id];
 
-                var dictionary = new Dictionary<string, string>(list.Length);
+                // We can't cache these as they would hold on to strings.
+                // This reader is designed to not hold onto strings,
+                // so that we can fit in a 32-bit process when reading huge binlogs
+                var dictionary = SmallDictionary<string, string>.Create(list.Length);
                 for (int i = 0; i < list.Length; i++)
                 {
                     string key = GetStringFromRecord(list[i].keyIndex);

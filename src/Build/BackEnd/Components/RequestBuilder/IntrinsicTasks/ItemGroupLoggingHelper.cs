@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
@@ -40,6 +41,7 @@ namespace Microsoft.Build.BackEnd
         static ItemGroupLoggingHelper()
         {
             TaskParameterEventArgs.MessageGetter = GetTaskParameterText;
+            TaskParameterEventArgs.DictionaryFactory = SmallDictionary<string, string>.Create;
         }
 
         /// <summary>
