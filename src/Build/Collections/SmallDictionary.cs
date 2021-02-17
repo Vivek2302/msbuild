@@ -11,7 +11,7 @@ namespace Microsoft.Build.Collections
     /// </summary>
     /// <typeparam name="TKey">Type of keys</typeparam>
     /// <typeparam name="TValue">Type of values</typeparam>
-    internal class SmallDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    internal class SmallDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary
     {
         private TKey[] keys;
         private TValue[] values;
@@ -62,17 +62,33 @@ namespace Microsoft.Build.Collections
             }
         }
 
+        object IDictionary.this[object key]
+        {
+            get => this[(TKey)key];
+            set => this[(TKey)key] = (TValue)value;
+        }
+
         public ICollection<TKey> Keys => keys;
 
+        ICollection IDictionary.Keys => keys;
+
         public ICollection<TValue> Values => values;
+
+        ICollection IDictionary.Values => values;
 
         private IEqualityComparer<TKey> KeyComparer => EqualityComparer<TKey>.Default;
 
         private IEqualityComparer<TValue> ValueComparer => EqualityComparer<TValue>.Default;
 
-        public int Count => keys.Length;
+        public int Count => count;
 
         public bool IsReadOnly => true;
+
+        bool IDictionary.IsFixedSize => true;
+
+        object ICollection.SyncRoot => this;
+
+        bool ICollection.IsSynchronized => false;
 
         public void Add(TKey key, TValue value)
         {
@@ -135,7 +151,19 @@ namespace Microsoft.Build.Collections
             }
         }
 
+        void ICollection.CopyTo(Array array, int index)
+        {
+            throw new NotImplementedException();
+        }
+
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        IDictionaryEnumerator IDictionary.GetEnumerator()
         {
             return new Enumerator(this);
         }
@@ -166,9 +194,32 @@ namespace Microsoft.Build.Collections
             return false;
         }
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        bool IDictionary.Contains(object key)
+        {
+            if (key is not TKey typedKey)
+            {
+                return false;
+            }
 
-        private struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>
+            return ContainsKey(typedKey);
+        }
+
+        void IDictionary.Add(object key, object value)
+        {
+            if (key is TKey typedKey && value is TValue typedValue)
+            {
+                Add(typedKey, typedValue);
+            }
+
+            throw new NotSupportedException();
+        }
+
+        void IDictionary.Remove(object key)
+        {
+            throw new NotImplementedException();
+        }
+
+        private struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>, IDictionaryEnumerator
         {
             private readonly SmallDictionary<TKey, TValue> _dictionary;
             private int _position;
@@ -185,6 +236,12 @@ namespace Microsoft.Build.Collections
                     _dictionary.values[_position]);
 
             object IEnumerator.Current => Current;
+
+            object IDictionaryEnumerator.Key => _dictionary.keys[_position];
+
+            object IDictionaryEnumerator.Value => _dictionary.values[_position];
+
+            DictionaryEntry IDictionaryEnumerator.Entry => new DictionaryEntry(_dictionary.keys[_position], _dictionary.values[_position]);
 
             public void Dispose()
             {
