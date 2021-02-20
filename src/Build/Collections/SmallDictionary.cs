@@ -16,8 +16,6 @@ namespace Microsoft.Build.Collections
         private TKey[] keys;
         private TValue[] values;
 
-        private const int maxCapacity = 16;
-
         private int count;
 
         public SmallDictionary(int capacity)
@@ -28,14 +26,7 @@ namespace Microsoft.Build.Collections
 
         public static IDictionary<TKey, TValue> Create(int capacity)
         {
-            if (capacity <= maxCapacity)
-            {
-                return new SmallDictionary<TKey, TValue>(capacity);
-            }
-            else
-            {
-                return new Dictionary<TKey, TValue>(capacity);
-            }
+            return new SmallDictionary<TKey, TValue>(capacity);
         }
 
         public TValue this[TKey key]
