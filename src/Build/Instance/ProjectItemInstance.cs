@@ -1046,6 +1046,11 @@ namespace Microsoft.Build.Execution
             }
 
             /// <summary>
+            /// Expose direct metadata for BinaryLogger performance
+            /// </summary>
+            internal IEnumerable<ProjectMetadataInstance> DirectMetadata => (IEnumerable<ProjectMetadataInstance>)_directMetadata ?? Array.Empty<ProjectMetadataInstance>();
+
+            /// <summary>
             /// Unordered collection of evaluated metadata on the item.
             /// If there is no metadata, returns an empty collection.
             /// Does not include built-in metadata.
