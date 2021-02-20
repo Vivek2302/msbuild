@@ -220,11 +220,11 @@ namespace Microsoft.Build.BackEnd
         internal static void LogTaskParameter(
             LoggingContext loggingContext,
             TaskParameterMessageKind messageKind,
-            string itemType,
+            string itemName,
             IList items,
             bool logItemMetadata)
         {
-            var args = CreateTaskParameterEventArgs(loggingContext.BuildEventContext, messageKind, itemType, items, logItemMetadata, DateTime.UtcNow);
+            var args = CreateTaskParameterEventArgs(loggingContext.BuildEventContext, messageKind, itemName, items, logItemMetadata, DateTime.UtcNow);
             loggingContext.LogBuildEvent(args);
         }
 
