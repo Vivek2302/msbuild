@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Exceptions;
+using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
 using Microsoft.Build.Internal;
@@ -697,6 +699,8 @@ namespace Microsoft.Build.Logging
             return flags;
         }
 
+        private readonly List<object> reusableItemsList = new List<object>();
+
         private void WriteTaskItemList(IEnumerable items, bool writeMetadata = true)
         {
             if (items == null)
@@ -706,9 +710,34 @@ namespace Microsoft.Build.Logging
             }
 
             int count = 0;
-            foreach (var item in items)
+
+            // bypass copying of all items to save on perf
+            if (items is TargetLoggingContext.TargetOutputItemsInstanceEnumeratorProxy proxy)
             {
-                count += 1;
+                items = proxy.BackingItems;
+            }
+
+            if (items is ICollection arrayList)
+            {
+                count = arrayList.Count;
+            }
+            else if (items is ICollection<ITaskItem> genericList)
+            {
+                count = genericList.Count;
+            }
+            else
+            {
+                // enumerate only once
+                foreach (var item in items)
+                {
+                    if (item != null)
+                    {
+                        count += 1;
+                        reusableItemsList.Add(item);
+                    }
+                }
+
+                items = reusableItemsList;
             }
 
             Write(count);
@@ -725,6 +754,8 @@ namespace Microsoft.Build.Logging
                     Write(0); // no metadata
                 }
             }
+
+            reusableItemsList.Clear();
         }
 
         private void WriteProjectItems(IEnumerable items)
@@ -761,31 +792,70 @@ namespace Microsoft.Build.Logging
 
             nameValueListBuffer.Clear();
 
-            IDictionary customMetadata = item.CloneCustomMetadata();
+            int count = 0;
 
-            foreach (string metadataName in customMetadata.Keys)
+            if (item is ProjectItemInstance.TaskItem taskItem)
             {
-                string valueOrError;
-
-                try
+                foreach (var projectMetadataInstance in taskItem.DirectMetadata)
                 {
-                    valueOrError = item.GetMetadata(metadataName);
-                }
-                catch (InvalidProjectFileException e)
-                {
-                    valueOrError = e.Message;
-                }
-                // Temporarily try catch all to mitigate frequent NullReferenceExceptions in
-                // the logging code until CopyOnWritePropertyDictionary is replaced with
-                // ImmutableDictionary. Calling into Debug.Fail to crash the process in case
-                // the exception occures in Debug builds.
-                catch (Exception e)
-                {
-                    valueOrError = e.Message;
-                    Debug.Fail(e.ToString());
+                    if (projectMetadataInstance != null)
+                    {
+                        count += 1;
+                        nameValueListBuffer.Add(new KeyValuePair<string, string>(projectMetadataInstance.Name, projectMetadataInstance.EvaluatedValue));
+                    }
                 }
 
-                nameValueListBuffer.Add(new KeyValuePair<string, string>(metadataName, valueOrError));
+                if (count == 0)
+                {
+                    Write((byte)0);
+                    return;
+                }
+            }
+            else
+            {
+                IDictionary customMetadata = item.CloneCustomMetadata();
+                count = customMetadata.Count;
+                if (count == 0)
+                {
+                    Write((byte)0);
+                    return;
+                }
+
+                if (customMetadata is IDictionary<string, string> dictionary)
+                {
+                    foreach (var kvp in dictionary)
+                    {
+                        nameValueListBuffer.Add(kvp);
+                    }
+                }
+                else
+                {
+                    // in theory this should not be reachable
+                    foreach (string metadataName in customMetadata.Keys)
+                    {
+                        string valueOrError;
+
+                        try
+                        {
+                            valueOrError = item.GetMetadata(metadataName);
+                        }
+                        catch (InvalidProjectFileException e)
+                        {
+                            valueOrError = e.Message;
+                        }
+                        // Temporarily try catch all to mitigate frequent NullReferenceExceptions in
+                        // the logging code until CopyOnWritePropertyDictionary is replaced with
+                        // ImmutableDictionary. Calling into Debug.Fail to crash the process in case
+                        // the exception occures in Debug builds.
+                        catch (Exception e)
+                        {
+                            valueOrError = e.Message;
+                            Debug.Fail(e.ToString());
+                        }
+
+                        nameValueListBuffer.Add(new KeyValuePair<string, string>(metadataName, valueOrError));
+                    }
+                }
             }
 
             WriteNameValueList();
@@ -927,7 +997,7 @@ namespace Microsoft.Build.Logging
 
         private void Write(int value)
         {
-            binaryWriter.Write7BitEncodedInt(value);
+            BinaryWriterExtensions.Write7BitEncodedInt(binaryWriter, value);
         }
 
         private void Write(long value)
