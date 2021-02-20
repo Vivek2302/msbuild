@@ -1425,11 +1425,16 @@ namespace Microsoft.Build.BackEnd
             {
                 if (outputTargetIsItem)
                 {
+                    // Only count non-null elements. We sometimes have a single-element array where the element is null
+                    bool hasElements = false;
+
                     foreach (ITaskItem output in outputs)
                     {
                         // if individual items in the array are null, ignore them
                         if (output != null)
                         {
+                            hasElements = true;
+
                             ProjectItemInstance newItem;
 
                             TaskItem outputAsProjectItem = output as TaskItem;
@@ -1473,7 +1478,7 @@ namespace Microsoft.Build.BackEnd
                         }
                     }
 
-                    if (LogTaskInputs && !_taskLoggingContext.LoggingService.OnlyLogCriticalEvents && outputs.Length > 0 && parameter.Log)
+                    if (hasElements && LogTaskInputs && !_taskLoggingContext.LoggingService.OnlyLogCriticalEvents && parameter.Log)
                     {
                         ItemGroupLoggingHelper.LogTaskParameter(
                             _taskLoggingContext,
