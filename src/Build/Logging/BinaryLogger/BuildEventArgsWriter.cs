@@ -732,12 +732,12 @@ namespace Microsoft.Build.Logging
                 {
                     if (item != null)
                     {
-                        count += 1;
                         reusableItemsList.Add(item);
                     }
                 }
 
                 items = reusableItemsList;
+                count = reusableItemsList.Count;
             }
 
             Write(count);
@@ -792,34 +792,19 @@ namespace Microsoft.Build.Logging
 
             nameValueListBuffer.Clear();
 
-            int count = 0;
-
             if (item is ProjectItemInstance.TaskItem taskItem)
             {
                 foreach (var projectMetadataInstance in taskItem.DirectMetadata)
                 {
                     if (projectMetadataInstance != null)
                     {
-                        count += 1;
                         nameValueListBuffer.Add(new KeyValuePair<string, string>(projectMetadataInstance.Name, projectMetadataInstance.EvaluatedValue));
                     }
-                }
-
-                if (count == 0)
-                {
-                    Write((byte)0);
-                    return;
                 }
             }
             else
             {
                 IDictionary customMetadata = item.CloneCustomMetadata();
-                count = customMetadata.Count;
-                if (count == 0)
-                {
-                    Write((byte)0);
-                    return;
-                }
 
                 if (customMetadata is IDictionary<string, string> dictionary)
                 {
