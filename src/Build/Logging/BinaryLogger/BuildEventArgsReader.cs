@@ -233,7 +233,7 @@ namespace Microsoft.Build.Logging
                     string value = GetStringFromRecord(list[i].valueIndex);
                     if (key != null)
                     {
-                        dictionary[key] = value;
+                        dictionary.Add(key, value);
                     }
                 }
 

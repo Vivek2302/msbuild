@@ -98,7 +98,7 @@ namespace Microsoft.Build.Framework
                 string value = reader.ReadString();
                 if (key != null)
                 {
-                    metadata[key] = value;
+                    metadata.Add(key, value);
                 }
             }
 
